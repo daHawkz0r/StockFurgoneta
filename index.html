@@ -113,26 +113,28 @@
   let lastScanTime = 0;
   let audioCtx = null;
 
-  function playBeep(freq = 880, durationMs = 120) {
-    try {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) return;
-      if (!audioCtx) audioCtx = new AudioContextClass();
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + durationMs / 1000);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + durationMs / 1000);
-    } catch (e) {}
-  }
+  function playBeep(freq = 1800, durationMs = 220) {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) audioCtx = new AudioContextClass();
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    // Volumen más alto (0.6 en vez de 0.18)
+    gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+    // Pequeño ataque y caída suave para evitar "clics" y que suene limpio
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + durationMs / 1000);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + durationMs / 1000);
+  } catch (e) {}
+}
 
   function initDB() {
     return new Promise((resolve, reject) => {
@@ -275,7 +277,7 @@
           lastScanTime = now;
 
           const unidades = Math.max(1, parseInt(document.getElementById('qty-input').value, 10) || 1);
-          playBeep(currentMode === 'ENTRADA' ? 880 : 660, 120);
+          playBeep(currentMode === 'ENTRADA' ? 2000 : 1400, 220);
           if (navigator.vibrate) navigator.vibrate(90);
 
           registrarMovimiento(cleanCode, currentMode, unidades, true);
