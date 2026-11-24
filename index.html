@@ -551,11 +551,29 @@
         };
       })
       .sort((a, b) => {
-        if (a.prioridad !== b.prioridad) return a.prioridad - b.prioridad;
-        if (a.prioridad === 1) {
-          return b.diasEnStock - a.diasEnStock;
-        }
-        return (b.ultimaFecha || '').localeCompare(a.ultimaFecha || '');
+      // Asignamos un grupo de orden a cada pieza:
+      // 0 -> pieza normal con alerta roja (devolver)
+      // 1 -> pieza fija con 0 unidades (reponer)
+      // 2 -> pieza normal (sin alerta roja)
+      // 3 -> pieza fija con >0 unidades
+      function grupo(item) {
+      if (!item.esFija && item.alertaRojaDevolucion) return 0;
+      if (item.esFija && item.unidades <= 0) return 1;
+      if (!item.esFija) return 2;
+      return 3; // fija con unidades > 0
+      }
+
+      const ga = grupo(a);
+      const gb = grupo(b);
+      if (ga !== gb) return ga - gb;
+
+      // Dentro de cada grupo, ordenamos igual que antes:
+      // - alertas rojas: más días en stock primero
+      if (ga === 0) {
+        return b.diasEnStock - a.diasEnStock;
+      }
+      // - el resto: por última fecha descendente
+      return (b.ultimaFecha || '').localeCompare(a.ultimaFecha || '');
       });
 
     if (!enriquecidos.length) {
