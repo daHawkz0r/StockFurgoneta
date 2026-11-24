@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Inventario Furgoneta</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-2: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --in: #10b981;
+      --in-dark: #065f46;
+      --out: #ef4444;
+      --out-dark: #7f1d1d;
+      --overdue-bg: rgba(239, 68, 68, 0.16);
+      --overdue-border: #ef4444;
+      --warn-bg: rgba(245, 158, 11, 0.18);
+      --warn-border: #f59e0b;
+      --warn-text: #fde68a;
+      --accent: #38bdf8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 80px;
+    }
+    header {
+      background: #020617;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: 0.3px;
+    }
+    .badge {
+      background: var(--card-2);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .tab-btn {
+      background: var(--card);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 4px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #020617;
+      border-color: var(--accent);
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .mode-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .mode-btn {
+      padding: 14px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: #0f172a;
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .mode-btn.active-in {
+      background: var(--in-dark);
+      border-color: var(--in);
+      color: #ecfdf5;
+    }
+    .mode-btn.active-out {
+      background: var(--out-dark);
+      border-color: var(--out);
+      color: #fef2f2;
+    }
+    #reader-wrapper {
+      display: none;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid var(--accent);
+      background: #000;
+    }
+    #reader { width: 100%; }
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-cam {
+      background: var(--card-2);
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .btn-cam.scanning {
+      background: #b45309;
+      color: #fff;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+    input[type="text"], input[type="number"], input[type="date"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: var(--text);
+      font-size: 1rem;
+      margin-bottom: 12px;
+    }
+    .qty-row {
+      display: grid;
+      grid-template-columns: 52px 1fr 52px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .qty-row input {
+      margin-bottom: 0;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    .qty-btn {
+      height: 46px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--card-2);
+      color: var(--text);
+      font-size: 1.3rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-submit-in { background: var(--in); color: #022c22; }
+    .btn-submit-out { background: var(--out); color: #fff; }
+    #toast {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #020617;
+      color: #fff;
+      border: 1px solid var(--accent);
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      z-index: 50;
+      display: none;
+      max-width: 92%;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--border);
+      gap: 10px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+    }
+    .item-row:last-child { border-bottom: none; margin-bottom: 0; }
+
+    /* Pieza no fija con más de 3 días en stock -> ROJO */
+    .item-row.overdue {
+      background: var(--overdue-bg);
+      border: 1px solid var(--overdue-border);
+    }
+    .item-row.overdue .code-title {
+      color: #fca5a5;
+    }
+    .overdue-tag {
+      display: inline-block;
+      margin-top: 4px;
+      background: var(--out);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      letter-spacing: 0.2px;
+    }
+
+    /* Pieza fija de stock a 0 unidades -> AMARILLO */
+    .item-row.low-fixed {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+    }
+    .item-row.low-fixed .code-title {
+      color: var(--warn-text);
+    }
+    .warn-tag {
+      display: inline-block;
+      margin-top: 4px;
+      background: #f59e0b;
+      color: #1c1917;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      letter-spacing: 0.2px;
+    }
+    .fixed-tag {
+      display: inline-block;
+      margin-top: 4px;
+      background: rgba(56, 189, 248, 0.16);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .code-title {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      word-break: break-all;
+    }
+    .meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .pill {
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+    .pill-stock { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+    .pill-overdue { background: rgba(239, 68, 68, 0.25); color: #fecaca; border: 1px solid var(--out); }
+    .pill-warn { background: rgba(245, 158, 11, 0.28); color: var(--warn-text); border: 1px solid var(--warn-border); }
+    .pill-zero { background: rgba(148, 163, 184, 0.15); color: var(--muted); }
+    .pill-in { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .pill-out { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .quick-out-btn, .pin-btn {
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .quick-out-btn {
+      background: var(--out-dark);
+      color: #fecaca;
+      border: 1px solid var(--out);
+    }
+    .pin-btn {
+      background: #0f172a;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .pin-btn.active {
+      background: rgba(56, 189, 248, 0.18);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .hidden { display: none; }
+    .row-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+    .action-buttons-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .small-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🚐 Stock Furgoneta</h1>
+  <span class="badge" id="total-badge">0 uds</span>
+</header>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('operar')">Escáner</button>
+    <button class="tab-btn" onclick="switchTab('stock')">Stock</button>
+    <button class="tab-btn" onclick="switchTab('historial')">Historial</button>
+    <button class="tab-btn" onclick="switchTab('backup')">Copia</button>
+  </div>
+
+  <!-- PESTAÑA 1: OPERAR (ENTRADA / SALIDA) -->
+  <section id="tab-operar">
+    <div class="card">
+      <div class="mode-switch">
+        <button id="btn-mode-in" class="mode-btn active-in" onclick="setMode('ENTRADA')">📥 ENTRADA</button>
+        <button id="btn-mode-out" class="mode-btn" onclick="setMode('SALIDA')">📤 SALIDA</button>
+      </div>
+
+      <button id="btn-toggle-cam" class="btn btn-cam" onclick="toggleScanner()">📷 Activar Cámara</button>
+      <div id="reader-wrapper">
+        <div id="reader"></div>
+      </div>
+
+      <label for="barcode-input">Código de barras / Referencia</label>
+      <input type="text" id="barcode-input" placeholder="Escanea o escribe el código..." autocomplete="off" />
+
+      <label>Unidades</label>
+      <div class="qty-row">
+        <button type="button" class="qty-btn" onclick="changeQty(-1)">−</button>
+        <input type="number" id="qty-input" value="1" min="1" />
+        <button type="button" class="qty-btn" onclick="changeQty(1)">+</button>
+      </div>
+
+      <label for="date-input">Fecha del movimiento</label>
+      <input type="date" id="date-input" />
+
+      <button id="btn-save" class="btn btn-submit-in" onclick="registrarMovimiento()">✅ Registrar ENTRADA</button>
+    </div>
+
+    <div class="card">
+      <div style="font-size:0.85rem; font-weight:700; margin-bottom:6px; color:var(--muted);">Últimos 5 movimientos</div>
+      <div id="recent-list"></div>
+    </div>
+  </section>
+
+  <!-- PESTAÑA 2: STOCK ACTUAL -->
+  <section id="tab-stock" class="hidden">
+    <div class="card">
+      <input type="text" id="search-stock" placeholder="🔍 Filtrar por código..." oninput="renderStock()" />
+      <label class="small-toggle">
+        <input type="checkbox" id="show-zero" onchange="renderStock()" />
+        Mostrar también piezas normales agotadas (0 uds)
+      </label>
+      <div id="stock-list"></div>
+    </div>
+  </section>
+
+  <!-- PESTAÑA 3: HISTORIAL COMPLETO -->
+  <section id="tab-historial" class="hidden">
+    <div class="card">
+      <input type="text" id="search-history" placeholder="🔍 Buscar código o fecha (AAAA-MM-DD)..." oninput="renderHistory()" />
+      <div id="history-list"></div>
+    </div>
+  </section>
+
+  <!-- PESTAÑA 4: COPIA DE SEGURIDAD -->
+  <section id="tab-backup" class="hidden">
+    <div class="card">
+      <h3 style="margin-top:0;">Copia de seguridad local</h3>
+      <p style="font-size:0.88rem; color:var(--muted); line-height:1.4;">
+        Todos los datos se guardan exclusivamente en la base de datos interna de este navegador (IndexedDB). Exporta un archivo de vez en cuando para no perder tu historial si limpias el móvil.
+      </p>
+      <button class="btn btn-submit-in" style="margin-bottom:10px;" onclick="exportarJSON()">⬇️ Exportar copia (JSON)</button>
+      <button class="btn btn-cam" style="margin-bottom:16px;" onclick="exportarCSV()">📊 Exportar movimientos (CSV / Excel)</button>
+
+      <label for="import-file">Restaurar desde archivo JSON</label>
+      <input type="file" id="import-file" accept=".json" onchange="importarJSON(event)" style="color:var(--muted);" />
+    </div>
+  </section>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const DB_NAME = 'FurgonetaInventarioDB';
+  const DB_VERSION = 1;
+  const DIAS_LIMITE_DEVOLUCION = 3;
+
+  let db;
+  let currentMode = 'ENTRADA';
+  let html5QrCode = null;
+  let isScanning = false;
+  let lastScanCode = '';
+  let lastScanTime = 0;
+
+  function initDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+      request.onupgradeneeded = (e) => {
+        const database = e.target.result;
+        if (!database.objectStoreNames.contains('movimientos')) {
+          const movStore = database.createObjectStore('movimientos', { keyPath: 'id', autoIncrement: true });
+          movStore.createIndex('codigo', 'codigo', { unique: false });
+          movStore.createIndex('fecha', 'fecha', { unique: false });
+        }
+        if (!database.objectStoreNames.contains('stock')) {
+          database.createObjectStore('stock', { keyPath: 'codigo' });
+        }
+      };
+
+      request.onsuccess = (e) => {
+        db = e.target.result;
+        resolve(db);
+      };
+
+      request.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    setTodayDate();
+    await initDB();
+    await refreshAllViews();
+  });
+
+  function getLocalTodayISO() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function setTodayDate() {
+    document.getElementById('date-input').value = getLocalTodayISO();
+  }
+
+  function calcularDiasTranscurridos(fechaISO) {
+    if (!fechaISO) return 0;
+    const partes = fechaISO.split('-').map(Number);
+    if (partes.length !== 3) return 0;
+    const origen = new Date(partes[0], partes[1] - 1, partes[2]);
+    const hoyStr = getLocalTodayISO().split('-').map(Number);
+    const hoy = new Date(hoyStr[0], hoyStr[1] - 1, hoyStr[2]);
+    const diffMs = hoy - origen;
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.display = 'none'; }, 2800);
+  }
+
+  function switchTab(tabName) {
+    ['operar', 'stock', 'historial', 'backup'].forEach(t => {
+      document.getElementById('tab-' + t).classList.toggle('hidden', t !== tabName);
+    });
+    const btns = document.querySelectorAll('.tab-btn');
+    const map = { operar: 0, stock: 1, historial: 2, backup: 3 };
+    btns.forEach((b, i) => b.classList.toggle('active', i === map[tabName]));
+
+    if (tabName !== 'operar' && isScanning) {
+      stopScanner();
+    }
+    refreshAllViews();
+  }
+
+  function setMode(mode) {
+    currentMode = mode;
+    const btnIn = document.getElementById('btn-mode-in');
+    const btnOut = document.getElementById('btn-mode-out');
+    const btnSave = document.getElementById('btn-save');
+
+    if (mode === 'ENTRADA') {
+      btnIn.className = 'mode-btn active-in';
+      btnOut.className = 'mode-btn';
+      btnSave.className = 'btn btn-submit-in';
+      btnSave.textContent = '✅ Registrar ENTRADA';
+    } else {
+      btnIn.className = 'mode-btn';
+      btnOut.className = 'mode-btn active-out';
+      btnSave.className = 'btn btn-submit-out';
+      btnSave.textContent = '📤 Registrar SALIDA / DEVOLUCIÓN';
+    }
+  }
+
+  function changeQty(delta) {
+    const input = document.getElementById('qty-input');
+    const next = Math.max(1, (parseInt(input.value, 10) || 1) + delta);
+    input.value = next;
+  }
+
+  async function toggleScanner() {
+    if (isScanning) {
+      await stopScanner();
+    } else {
+      await startScanner();
+    }
+  }
+
+  async function startScanner() {
+    const wrapper = document.getElementById('reader-wrapper');
+    const btn = document.getElementById('btn-toggle-cam');
+    wrapper.style.display = 'block';
+    btn.textContent = '⏹️ Detener Cámara';
+    btn.classList.add('scanning');
+
+    try {
+      html5QrCode = new Html5Qrcode('reader');
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 140 } },
+        (decodedText) => {
+          const now = Date.now();
+          if (decodedText === lastScanCode && (now - lastScanTime) < 1800) return;
+          lastScanCode = decodedText;
+          lastScanTime = now;
+
+          document.getElementById('barcode-input').value = decodedText.trim();
+          if (navigator.vibrate) navigator.vibrate(100);
+          showToast('Código leído: ' + decodedText.trim());
+        },
+        () => {}
+      );
+      isScanning = true;
+    } catch (err) {
+      wrapper.style.display = 'none';
+      btn.textContent = '📷 Activar Cámara';
+      btn.classList.remove('scanning');
+      showToast('No se pudo abrir la cámara (requiere HTTPS o permisos).');
+    }
+  }
+
+  async function stopScanner() {
+    const wrapper = document.getElementById('reader-wrapper');
+    const btn = document.getElementById('btn-toggle-cam');
+    if (html5QrCode && isScanning) {
+      try {
+        await html5QrCode.stop();
+        html5QrCode.clear();
+      } catch (e) {}
+    }
+    isScanning = false;
+    wrapper.style.display = 'none';
+    btn.textContent = '📷 Activar Cámara';
+    btn.classList.remove('scanning');
+  }
+
+  function toggleFijaStock(codigo) {
+    const tx = db.transaction('stock', 'readwrite');
+    const store = tx.objectStore('stock');
+    const req = store.get(codigo);
+
+    req.onsuccess = () => {
+      const item = req.result;
+      if (!item) return;
+      item.esFija = !item.esFija;
+      store.put(item);
+      tx.oncomplete = () => {
+        showToast(item.esFija
+          ? `📌 ${codigo} marcada como pieza fija de stock`
+          : `🔓 ${codigo} pasa a pieza normal`);
+        refreshAllViews();
+      };
+    };
+  }
+
+  function registrarMovimiento(codigoForzado = null, modoForzado = null, unidadesForzadas = null) {
+    const codigo = (codigoForzado ?? document.getElementById('barcode-input').value).trim().toUpperCase();
+    const tipo = modoForzado ?? currentMode;
+    const unidades = unidadesForzadas ?? (parseInt(document.getElementById('qty-input').value, 10) || 1);
+    const fecha = document.getElementById('date-input').value || getLocalTodayISO();
+
+    if (!codigo) {
+      showToast('Introduce o escanea un código primero.');
+      return;
+    }
+
+    const tx = db.transaction(['movimientos', 'stock'], 'readwrite');
+    const movStore = tx.objectStore('movimientos');
+    const stockStore = tx.objectStore('stock');
+
+    const getReq = stockStore.get(codigo);
+
+    getReq.onsuccess = () => {
+      const actual = getReq.result || {
+        codigo,
+        unidades: 0,
+        enStock: false,
+        ultimaFecha: fecha,
+        fechaEntradaActual: fecha,
+        esFija: false
+      };
+
+      let nuevoSaldo = actual.unidades;
+      let fechaEntradaActual = actual.fechaEntradaActual || actual.ultimaFecha || fecha;
+
+      if (tipo === 'ENTRADA') {
+        if (actual.unidades <= 0 || !fechaEntradaActual) {
+          fechaEntradaActual = fecha;
+        } else if (fecha < fechaEntradaActual) {
+          fechaEntradaActual = fecha;
+        }
+        nuevoSaldo += unidades;
+      } else {
+        if (actual.unidades < unidades) {
+          showToast(`⚠️ Aviso: tenías ${actual.unidades} uds en stock.`);
+        }
+        nuevoSaldo = Math.max(0, actual.unidades - unidades);
+        if (nuevoSaldo === 0) {
+          fechaEntradaActual = null;
+        }
+      }
+
+      const enStock = nuevoSaldo > 0;
+
+     movStore.add({
+        codigo,
+        fecha,
+        timestamp: new Date().toISOString(),
+        tipo,
+        unidades,
+        enStockTrasMovimiento: enStock
+      });
+
+      stockStore.put({
+        codigo,
+        unidades: nuevoSaldo,
+        enStock,
+        ultimaFecha: fecha,
+        fechaEntradaActual,
+        esFija: Boolean(actual.esFija)
+      });
+    };
+
+    tx.oncomplete = () => {
+      if (!codigoForzado) {
+        document.getElementById('barcode-input').value = '';
+        document.getElementById('qty-input').value = '1';
+      }
+      showToast(`${tipo}: ${unidades}x ${codigo}`);
+      refreshAllViews();
+    };
+  }
+
+  function getAllFromStore(storeName) {
+    return new Promise((resolve) => {
+      const tx = db.transaction(storeName, 'readonly');
+      const req = tx.objectStore(storeName).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+    });
+  }
+
+  async function refreshAllViews() {
+    const [stockItems, movimientos] = await Promise.all([
+      getAllFromStore('stock'),
+      getAllFromStore('movimientos')
+    ]);
+
+    const totalUds = stockItems.reduce((acc, item) => acc + (item.unidades || 0), 0);
+    document.getElementById('total-badge').textContent = `${totalUds} uds`;
+
+    renderRecent(movimientos);
+    renderStock(stockItems);
+    renderHistory(movimientos);
+  }
+
+  function renderRecent(movimientos) {
+    const container = document.getElementById('recent-list');
+    const ultimos = [...movimientos].reverse().slice(0, 5);
+    if (!ultimos.length) {
+      container.innerHTML = '<div class="meta">Sin movimientos todavía.</div>';
+      return;
+    }
+    container.innerHTML = ultimos.map(m => `
+      <div class="item-row">
+        <div>
+          <div class="code-title">${escapeHTML(m.codigo)}</div>
+          <div class="meta">${m.fecha} · ${m.enStockTrasMovimiento ? 'En stock' : 'Sin stock'}</div>
+        </div>
+        <span class="pill ${m.tipo === 'ENTRADA' ? 'pill-in' : 'pill-out'}">
+          ${m.tipo === 'ENTRADA' ? '+' : '-'}${m.unidades}
+        </span>
+      </div>
+    `).join('');
+  }
+
+  async function renderStock(preloadedStock = null) {
+    const stockItems = preloadedStock || await getAllFromStore('stock');
+    const query = document.getElementById('search-stock').value.trim().toUpperCase();
+    const showZero = document.getElementById('show-zero').checked;
+    const container = document.getElementById('stock-list');
+
+    const enriquecidos = stockItems
+      .filter(item => {
+        const esFija = Boolean(item.esFija);
+        // Las piezas fijas siempre se muestran (para ver si están a 0 en amarillo);
+        // las normales a 0 solo si se marca el check.
+        return item.unidades > 0 || esFija || showZero;
+      })
+      .filter(item => !query || item.codigo.includes(query))
+      .map(item => {
+        const esFija = Boolean(item.esFija);
+        const refFecha = item.unidades > 0 ? (item.fechaEntradaActual || item.ultimaFecha) : null;
+        const diasEnStock = refFecha ? calcularDiasTranscurridos(refFecha) : 0;
+
+        const alertaAmarillaFija = esFija && item.unidades <= 0;
+        const alertaRojaDevolucion = !esFija && item.unidades > 0 && diasEnStock > DIAS_LIMITE_DEVOLUCION;
+
+        // Prioridad visual en el listado:
+        // 1 -> Fija sin stock (amarillo) o normal >3 días (rojo)
+        // 2 -> Resto de piezas
+        let prioridad = 2;
+        if (alertaAmarillaFija || alertaRojaDevolucion) prioridad = 1;
+
+        return {
+          ...item,
+          esFija,
+          diasEnStock,
+          alertaAmarillaFija,
+          alertaRojaDevolucion,
+          prioridad
+        };
+      })
+      .sort((a, b) => {
+        if (a.prioridad !== b.prioridad) return a.prioridad - b.prioridad;
+        if (a.prioridad === 1) {
+          return b.diasEnStock - a.diasEnStock;
+        }
+        return (b.ultimaFecha || '').localeCompare(a.ultimaFecha || '');
+      });
+
+    if (!enriquecidos.length) {
+      container.innerHTML = '<div class="meta">No hay piezas que coincidan.</div>';
+      return;
+    }
+
+    container.innerHTML = enriquecidos.map(item => {
+      let claseFila = 'item-row';
+      let clasePill = item.unidades > 0 ? 'pill pill-stock' : 'pill pill-zero';
+      let etiquetaEstado = '';
+
+      if (item.alertaAmarillaFija) {
+        claseFila = 'item-row low-fixed';
+        clasePill = 'pill pill-warn';
+        etiquetaEstado = `<div class="warn-tag">⚠️ REPONER · PIEZA FIJA A 0 UDS</div>`;
+      } else if (item.alertaRojaDevolucion) {
+        claseFila = 'item-row overdue';
+        clasePill = 'pill pill-overdue';
+        etiquetaEstado = `<div class="overdue-tag">🚨 DEVOLVER · ${item.diasEnStock} días en stock</div>`;
+      } else if (item.esFija) {
+        etiquetaEstado = `<div class="fixed-tag">📌 Pieza fija de stock</div>`;
+      }
+
+      return `
+        <div class="${claseFila}">
+          <div>
+            <div class="code-title">${escapeHTML(item.codigo)}</div>
+            <div class="meta">Últ. mov: ${item.ultimaFecha || '-'} · ${item.unidades > 0 ? 'En furgoneta' : 'Sin stock'}</div>
+            ${etiquetaEstado}
+          </div>
+          <div class="row-actions">
+            <span class="${clasePill}">${item.unidades} uds</span>
+            <div class="action-buttons-line">
+              <button class="pin-btn ${item.esFija ? 'active' : ''}" onclick="toggleFijaStock('${escapeHTML(item.codigo)}')">
+                ${item.esFija ? '📌 Fija' : '📌 Marcar fija'}
+              </button>
+              ${item.unidades > 0 ? `<button class="quick-out-btn" onclick="registrarMovimiento('${escapeHTML(item.codigo)}', 'SALIDA', 1)">-1 Salida</button>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function renderHistory(preloadedMovs = null) {
+    const movimientos = preloadedMovs || await getAllFromStore('movimientos');
+    const query = document.getElementById('search-history').value.trim().toUpperCase();
+    const container = document.getElementById('history-list');
+
+    const filtrados = [...movimientos]
+      .reverse()
+      .filter(m => !query || m.codigo.includes(query) || m.fecha.includes(query));
+
+    if (!filtrados.length) {
+      container.innerHTML = '<div class="meta">No hay registros en el historial.</div>';
+      return;
+    }
+
+    container.innerHTML = filtrados.map(m => `
+      <div class="item-row">
+        <div>
+          <div class="code-title">${escapeHTML(m.codigo)}</div>
+          <div class="meta">${m.fecha} · ${m.tipo} · Stock: ${m.enStockTrasMovimiento ? 'Sí' : 'No'}</div>
+        </div>
+        <span class="pill ${m.tipo === 'ENTRADA' ? 'pill-in' : 'pill-out'}">
+          ${m.tipo === 'ENTRADA' ? '+' : '-'}${m.unidades}
+        </span>
+      </div>
+    `).join('');
+  }
+
+  async function exportarJSON() {
+    const [stock, movimientos] = await Promise.all([
+      getAllFromStore('stock'),
+      getAllFromStore('movimientos')
+    ]);
+    const data = { exportedAt: new Date().toISOString(), stock, movimientos };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, `backup-furgoneta-${getLocalTodayISO()}.json`);
+  }
+
+  async function exportarCSV() {
+    const movimientos = await getAllFromStore('movimientos');
+    const header = 'ID;Codigo;Fecha;Tipo;Unidades;EnStock\n';
+    const rows = movimientos.map(m =>
+      `${m.id};"${m.codigo}";${m.fecha};${m.tipo};${m.unidades};${m.enStockTrasMovimiento ? 'SI' : 'NO'}`
+    ).join('\n');
+    const blob = new Blob(['\uFEFF' + header + rows], { type: 'text/csv;charset=utf-8;' });
+    downloadBlob(blob, `movimientos-furgoneta-${getLocalTodayISO()}.csv`);
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importarJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!Array.isArray(data.stock) || !Array.isArray(data.movimientos)) {
+          throw new Error('Formato inválido');
+        }
+        const tx = db.transaction(['stock', 'movimientos'], 'readwrite');
+        const stockStore = tx.objectStore('stock');
+        const movStore = tx.objectStore('movimientos');
+
+        stockStore.clear();
+        movStore.clear();
+
+        data.stock.forEach(item => stockStore.put(item));
+        data.movimientos.forEach(mov => movStore.put(mov));
+
+        tx.oncomplete = () => {
+          showToast('✅ Copia restaurada correctamente.');
+          refreshAllViews();
+        };
+      } catch (err) {
+        showToast('❌ Archivo de copia no válido.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function escapeHTML(str) {
+    return String(str).replace(/[&<>"']/g, s => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[s]));
+  }
+</script>
+</body>
+</html>
