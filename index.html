@@ -439,7 +439,7 @@
   </section>
 </div>
 
-<div id="toast"></div>
+  <div id="toast"></div>
 
 <script>
   const DB_NAME = 'FurgonetaInventarioDB';
@@ -583,8 +583,7 @@
       await startScanner();
     }
   }
-
-  async function startScanner() {
+async function startScanner() {
     // Desbloquea / inicializa AudioContext en el gesto del usuario
     try {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -839,7 +838,7 @@
       return;
     }
 
-    container.innerHTML = enriquecidos.map(item => {
+  container.innerHTML = enriquecidos.map(item => {
       let claseFila = 'item-row';
       let clasePill = item.unidades > 0 ? 'pill pill-stock' : 'pill pill-zero';
       let etiquetaEstado = '';
